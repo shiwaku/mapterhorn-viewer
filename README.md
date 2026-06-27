@@ -50,6 +50,46 @@
 > ただしデータは EPSG:4326（緯度経度）のため、**高緯度ほど 1 セルの実面積が小さくなり**、
 > 密度として見ると高緯度ではやや低めに出ます（赤道付近では ≈ 人/km²）。凡例の `/km²` はこの近似表記です。
 
+#### タイル生成手順（GDAL → PMTiles）
+
+ソース（Float32, EPSG:4326）を 24bit 整数の数値PNGにエンコードして PMTiles 化します。
+**ポイントはリサンプリングを `near`（最近傍）に統一すること**。平均などで補間すると
+エンコードした RGB がブレて数値が壊れるためです。
+
+```bash
+SRC=ppp_2020_1km_Aggregated.tif   # WorldPop 2020 global 1km mosaic (829MB)
+CO="--co COMPRESS=DEFLATE --co BIGTIFF=YES"
+
+# 1) 人口を 24bit 整数 N=round(pop*10) にエンコード（nodata/負値は 0）
+gdal_calc.py -A $SRC --outfile=N.tif --type=UInt32 $CO \
+  --calc="where((A>=0)&(A<1e7), numpy.clip(numpy.rint(A*10),0,16777215),0).astype(numpy.uint32)"
+
+# 2) N を R(上位8bit)/G(中位)/B(下位) と A(有効=255) に分解
+gdal_calc.py -A N.tif --outfile=R.tif --type=Byte $CO --calc="(A//65536)%256"
+gdal_calc.py -A N.tif --outfile=G.tif --type=Byte $CO --calc="(A//256)%256"
+gdal_calc.py -A N.tif --outfile=B.tif --type=Byte $CO --calc="A%256"
+gdal_calc.py -A N.tif --outfile=A.tif --type=Byte $CO --calc="(A>0)*255"
+
+# 3) RGBA に結合
+gdalbuildvrt -separate rgba.vrt R.tif G.tif B.tif A.tif
+gdal_translate rgba.vrt rgba_4326.tif -colorinterp red,green,blue,alpha -co COMPRESS=DEFLATE -co BIGTIFF=YES
+
+# 4) Web Mercator へ（near 必須）
+gdalwarp -t_srs EPSG:3857 -r near -te_srs EPSG:4326 -te -180 -85.05112878 180 85.05112878 \
+  -co COMPRESS=DEFLATE -co BIGTIFF=YES rgba_4326.tif rgba_3857.tif
+
+# 5) MBTiles 化 → 下位ズームの概観を near で生成
+gdal_translate -of MBTILES rgba_3857.tif pop.mbtiles -co TILE_FORMAT=PNG
+gdaladdo -r nearest pop.mbtiles 2 4 8 16 32 64 128 256
+
+# 6) PMTiles へ変換（pmtiles CLI / protomaps）
+pmtiles convert pop.mbtiles worldpop_global_1km.pmtiles
+```
+
+結果：`worldpop_global_1km.pmtiles`（約140MB, PNG, z0–7, 全球）。
+クライアントは `src/population.ts` の `wppop://` プロトコルで各PNGを取得し、
+`pop = (R*65536 + G*256 + B) / 10` で復号 → カラーランプ配色します（`SCALE=10`）。
+
 ## 技術スタック
 
 - Vite 8 + TypeScript 6（素の TS + DOM、フレームワークなし）
