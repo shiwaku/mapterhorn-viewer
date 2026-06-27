@@ -20,6 +20,9 @@
 - **Earthquakes (USGS)**: [USGS](https://earthquake.usgs.gov/) のリアルタイム地震フィード（GeoJSON）を重畳。
   フィード選択（Significant 30d / M4.5+ 30d / M2.5+ 7d / All 24h）、円の大きさ=マグニチュード・色=深さ、
   クリックでポップアップ（場所・M・深さ・時刻・USGS イベントページへのリンク）。
+  - 特定イベントの表示：パネルの入力欄に **USGS イベントID または イベントページURL** を入れて Show すると、
+    その地震をハイライトして現地へフライト。`?event=<id>` のクエリで直リンク表示も可能
+    （例: `…/mapterhorn-viewer/?event=atth5pbk`）。
 - **Hillshade**: ON/OFF・手法（igor / multidirectional / standard / basic / combined）・誇張
 - **3D terrain**: ON/OFF・誇張
 - **Contours**: ON/OFF（ズームインで表示）

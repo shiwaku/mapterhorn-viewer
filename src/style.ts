@@ -80,6 +80,34 @@ function earthquakeLayer(): LayerSpecification {
   } as unknown as LayerSpecification;
 }
 
+/** Highlight ring + dot for a single focused event. */
+function focusLayers(): LayerSpecification[] {
+  return [
+    {
+      id: 'quake-focus-halo',
+      type: 'circle',
+      source: 'quake-focus',
+      paint: {
+        'circle-radius': 24,
+        'circle-color': 'rgba(255,59,48,0.16)',
+        'circle-stroke-color': '#ff3b30',
+        'circle-stroke-width': 2.5,
+      },
+    } as unknown as LayerSpecification,
+    {
+      id: 'quake-focus-dot',
+      type: 'circle',
+      source: 'quake-focus',
+      paint: {
+        'circle-radius': 5,
+        'circle-color': '#ff3b30',
+        'circle-stroke-color': '#ffffff',
+        'circle-stroke-width': 1.5,
+      },
+    } as unknown as LayerSpecification,
+  ];
+}
+
 /**
  * Build a complete MapLibre style from the viewer state. Pure function.
  *
@@ -92,6 +120,7 @@ export function buildStyle(
   state: ViewerState,
   base?: StyleSpecification,
   quakes?: QuakeData,
+  focus?: QuakeData,
 ): StyleSpecification {
   // --- Base map ON: merge into the vector style ------------------------------
   if (state.basemap && base) {
@@ -121,6 +150,10 @@ export function buildStyle(
       style.sources.earthquakes = { type: 'geojson', data: quakes as never, attribution: USGS_ATTRIBUTION };
       style.layers.push(earthquakeLayer());
     }
+    if (focus) {
+      style.sources['quake-focus'] = { type: 'geojson', data: focus as never, attribution: USGS_ATTRIBUTION };
+      style.layers.push(...focusLayers());
+    }
     return style;
   }
 
@@ -138,6 +171,10 @@ export function buildStyle(
   if (state.earthquakes && quakes) {
     sources.earthquakes = { type: 'geojson', data: quakes as never, attribution: USGS_ATTRIBUTION };
     layers.push(earthquakeLayer());
+  }
+  if (focus) {
+    sources['quake-focus'] = { type: 'geojson', data: focus as never, attribution: USGS_ATTRIBUTION };
+    layers.push(...focusLayers());
   }
 
   const style: StyleSpecification = {

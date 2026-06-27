@@ -11,6 +11,30 @@ export interface QuakeData {
 
 const cache = new Map<QuakeFeed, Promise<QuakeData>>();
 
+/** Extract a USGS event id from a raw id or an event-page URL (…/eventpage/<id>/map). */
+export function parseEventId(input: string): string {
+  const s = input.trim();
+  const m = s.match(/eventpage\/([^/?#]+)/);
+  if (m) return m[1];
+  const segs = s.split(/[/?#]/).filter(Boolean);
+  const last = segs[segs.length - 1];
+  if (last === 'map') return segs[segs.length - 2] ?? s;
+  return last ?? s;
+}
+
+/** Fetch a single USGS event by id (or event-page URL) as a one-feature collection. */
+export async function loadEvent(idOrUrl: string): Promise<QuakeData> {
+  const id = parseEventId(idOrUrl);
+  const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=${encodeURIComponent(id)}&format=geojson`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Event "${id}" not found (${r.status})`);
+  const feature = (await r.json()) as QuakeData['features'][number];
+  const coords = feature.geometry?.coordinates;
+  feature.properties = feature.properties ?? {};
+  feature.properties.depth = Array.isArray(coords) ? coords[2] : null;
+  return { type: 'FeatureCollection', features: [feature] };
+}
+
 /**
  * Fetch (and cache) a USGS earthquake summary feed. The DEM-style data-driven
  * paint needs depth as a property, but USGS stores it as the geometry's 3rd

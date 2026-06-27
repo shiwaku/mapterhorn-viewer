@@ -308,6 +308,48 @@
   color: var(--mh-faint);
 }
 
+/* --- Event finder --------------------------------------------------------- */
+.mh-find {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.mh-input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 10px;
+  color: var(--mh-text);
+  background: var(--mh-surface);
+  border: 1px solid var(--mh-border);
+  border-radius: 9px;
+}
+.mh-input:focus-visible {
+  outline: none;
+  border-color: var(--mh-accent);
+  box-shadow: 0 0 0 3px var(--mh-accent-soft);
+}
+.mh-btn {
+  flex: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 11px;
+  color: #fff;
+  background: var(--mh-accent);
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.mh-btn:hover {
+  filter: brightness(1.05);
+}
+.mh-btn-ghost {
+  color: var(--mh-muted);
+  background: #eef1f6;
+}
+
 /* --- Scrollbar ------------------------------------------------------------ */
 .mh-body::-webkit-scrollbar {
   width: 8px;

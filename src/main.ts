@@ -6,7 +6,7 @@ import './app.css';
 import { DEFAULT_STATE, DEFAULT_VIEW, type ViewerState } from './config';
 import { registerProtocols } from './demSource';
 import { loadBasemapStyle } from './basemap';
-import { loadEarthquakes, type QuakeData } from './earthquakes';
+import { loadEarthquakes, loadEvent, type QuakeData } from './earthquakes';
 import { buildStyle } from './style';
 import { ControlPanel } from './ui/ControlPanel';
 
@@ -59,30 +59,65 @@ async function init(): Promise<void> {
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
 
-  // Earthquake interactivity — handlers bind by layer id and survive setStyle,
-  // firing only while the 'earthquakes' layer exists.
-  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px' });
-  map.on('click', 'earthquakes', (e) => {
-    const f = e.features?.[0];
-    if (!f) return;
-    popup.setLngLat(e.lngLat).setHTML(quakePopupHtml(f.properties as Record<string, unknown>)).addTo(map);
-  });
-  map.on('mouseenter', 'earthquakes', () => { map.getCanvas().style.cursor = 'pointer'; });
-  map.on('mouseleave', 'earthquakes', () => { map.getCanvas().style.cursor = ''; });
+  // Latest applied state + the focused single event (independent of the feed).
+  let currentState: ViewerState = DEFAULT_STATE;
+  let focus: QuakeData | undefined;
 
   const applyState = async (state: ViewerState): Promise<void> => {
+    currentState = state;
     try {
       const [nextBase, nextQuakes] = await Promise.all([baseFor(state), quakesFor(state)]);
-      map.setStyle(buildStyle(state, nextBase, nextQuakes), { diff: true });
+      map.setStyle(buildStyle(state, nextBase, nextQuakes, focus), { diff: true });
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // Earthquake interactivity — handlers bind by layer id and survive setStyle,
+  // firing only while the matching layer exists.
+  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '260px' });
+  const showPopup = (lngLat: maplibregl.LngLatLike, props: Record<string, unknown>) =>
+    popup.setLngLat(lngLat).setHTML(quakePopupHtml(props)).addTo(map);
+
+  for (const layer of ['earthquakes', 'quake-focus-dot', 'quake-focus-halo']) {
+    map.on('click', layer, (e) => {
+      const f = e.features?.[0];
+      if (f) showPopup(e.lngLat, f.properties as Record<string, unknown>);
+    });
+    map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
+  }
+
+  /** Load a single USGS event by id/URL, highlight it, and fly there. Empty input clears it. */
+  const focusEvent = async (idOrUrl: string): Promise<void> => {
+    if (!idOrUrl.trim()) {
+      focus = undefined;
+      popup.remove();
+      await applyState(currentState);
+      return;
+    }
+    try {
+      const data = await loadEvent(idOrUrl);
+      focus = data;
+      await applyState(currentState);
+      const f = data.features[0];
+      const [lng, lat] = f.geometry.coordinates;
+      map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 7.5), speed: 1.2 });
+      showPopup([lng, lat], f.properties as Record<string, unknown>);
+    } catch (err) {
+      console.error(err);
+      window.alert(String(err instanceof Error ? err.message : err));
     }
   };
 
   const panelEl = document.getElementById('panel');
   if (!panelEl) throw new Error('#panel element missing');
 
-  new ControlPanel(panelEl, DEFAULT_STATE, (state) => void applyState(state));
+  new ControlPanel(panelEl, DEFAULT_STATE, (state) => void applyState(state), (id) => void focusEvent(id));
+
+  // Deep link: ?event=<id|url> auto-focuses an event once the map is ready.
+  const eventParam = new URLSearchParams(location.search).get('event');
+  if (eventParam) map.once('load', () => void focusEvent(eventParam));
 }
 
 void init();

@@ -38,12 +38,19 @@ const QUAKE_FEED_OPTIONS: { value: QuakeFeed; label: string }[] = [
 export class ControlPanel {
   private state: ViewerState;
   private readonly onChange: (state: ViewerState) => void;
+  private readonly onLoadEvent: (idOrUrl: string) => void;
   private readonly el: HTMLElement;
   private hillshadeExEl!: HTMLInputElement;
 
-  constructor(mount: HTMLElement, initial: ViewerState, onChange: (state: ViewerState) => void) {
+  constructor(
+    mount: HTMLElement,
+    initial: ViewerState,
+    onChange: (state: ViewerState) => void,
+    onLoadEvent: (idOrUrl: string) => void,
+  ) {
     this.state = { ...initial };
     this.onChange = onChange;
+    this.onLoadEvent = onLoadEvent;
     this.el = mount;
     this.el.classList.add('mh-panel');
     this.render();
@@ -310,6 +317,33 @@ export class ControlPanel {
       '<span class="mh-legend-bar"></span><span class="mh-legend-labels"><span>0 km</span><span>700 km</span></span>';
     s.appendChild(legend);
     s.appendChild(this.caption('Circle size = magnitude · colour = depth. Click a quake for details.'));
+
+    // Locate a specific event by id / event-page URL and fly to it.
+    const find = document.createElement('div');
+    find.className = 'mh-find';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'mh-input';
+    input.placeholder = 'USGS event id or URL';
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'mh-btn';
+    go.textContent = 'Show';
+    const submit = () => this.onLoadEvent(input.value);
+    go.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') submit();
+    });
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'mh-btn mh-btn-ghost';
+    clear.textContent = 'Clear';
+    clear.addEventListener('click', () => {
+      input.value = '';
+      this.onLoadEvent('');
+    });
+    find.append(input, go, clear);
+    s.appendChild(find);
     return s;
   }
 }
