@@ -42,9 +42,13 @@
 
 - 生成元：WorldPop 2020 `ppp_2020_1km_Aggregated`（GeoTIFF）→ `N=round(pop×10)` を RGB エンコード →
   Web Mercator(nearest) → MBTiles → PMTiles。
-- 配信URL：`src/config.ts` の `POPULATION_PMTILES_URL` に設定（既定はプレースホルダ）。
-  実行時に `?pop=<url>` で上書き可能。
+- 配信URL：`src/config.ts` の `POPULATION_PMTILES_URL` に設定。実行時に `?pop=<url>` で上書き可能。
 - **サーバー要件**：CORS（`Access-Control-Allow-Origin`）と **HTTP Range** に対応していること。
+
+> **値の意味**：表示している数値は `ppp_2020_1km_Aggregated`＝**1km セルあたりの推定人口数（people per cell）**です。
+> 厳密な「人口密度（人/km²）」ではありませんが、1セル≒1km² のため実質的に近似します。
+> ただしデータは EPSG:4326（緯度経度）のため、**高緯度ほど 1 セルの実面積が小さくなり**、
+> 密度として見ると高緯度ではやや低めに出ます（赤道付近では ≈ 人/km²）。凡例の `/km²` はこの近似表記です。
 
 ## 技術スタック
 
