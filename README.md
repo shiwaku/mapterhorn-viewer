@@ -49,22 +49,45 @@ npm run preview  # 本番ビルドのプレビュー
 地図の位置・ズームは URL ハッシュ（`#zoom/lat/lng/bearing/pitch`）に保存され共有可能です。
 初期表示は富士山周辺。
 
+### 特定の地震イベントを表示する
+
+Earthquakes パネルの入力欄に指定して **Show**、または URL の `?event=` クエリで直接開けます。
+ShakeMap がある地震なら、震源点に加えて MMI（揺れの強さ）の等値線が表示され、揺れの範囲に自動ズームします。
+（`Clear` で解除）
+
+指定できる形式（いずれも可）：
+
+| 形式 | 例 |
+|---|---|
+| 正規イベントID | `us6000t7zc`（M7.2）, `us6000t7zp`（M7.5） |
+| イベントページの短縮ID | `atth5pbk`（URL から ID を自動抽出） |
+| イベントページURL まるごと | `https://earthquake.usgs.gov/earthquakes/eventpage/us6000t7zc/map` |
+| 直リンク（`?event=`） | `https://shiwaku.github.io/mapterhorn-viewer/?event=us6000t7zc` |
+
+イベントIDは [USGS Earthquakes](https://earthquake.usgs.gov/earthquakes/map/) の各イベントページURL
+（`/eventpage/<ID>`）で確認できます。ShakeMap が無いイベントは震源点のみ表示されます。
+
+> MMI（Modified Mercalli Intensity）は各地点の揺れの強さを I〜XII で表す USGS の震度階級で、
+> 地震の規模を表すマグニチュード（M）とは別物です（気象庁の震度 0〜7 とも尺度が異なります）。
+
 ## 構成
 
 ```
 src/
-├── main.ts            エントリ（プロトコル登録 → Map 生成 → パネル配線）
+├── main.ts            エントリ（プロトコル登録 → Map 生成 → パネル配線・地震操作）
 ├── config.ts          エンドポイント・型・初期状態・陰影プリセット
 ├── basemap.ts         OpenFreeMap ベクトルスタイルの取得・キャッシュ
-├── style.ts           buildStyle(state, base) → MapLibre スタイル（純関数）
+├── earthquakes.ts     USGS フィード/単一イベント/ShakeMap MMI の取得・整形
+├── style.ts           buildStyle(state, base, quakes, focus, mmi) → MapLibre スタイル（純関数）
 ├── demSource.ts       PMTiles/contour プロトコル登録・ソース別 raster-dem 定義
 └── ui/ControlPanel.ts コントロールパネル（DOM 直書き）
 ```
 
-状態が変わるたびに base map スタイル（必要なら fetch）を解決し、
-`map.setStyle(buildStyle(state, base), { diff: true })` でスタイルを再適用します。
+状態が変わるたびに base map スタイル・地震データ（必要なら fetch）を解決し、
+`map.setStyle(buildStyle(...), { diff: true })` でスタイルを再適用します。
 
 ## データ提供
 
 Terrain data © [Mapterhorn](https://mapterhorn.com/attribution) ・
-Base map [OpenFreeMap](https://openfreemap.org/) © OpenMapTiles / OpenStreetMap contributors
+Base map [OpenFreeMap](https://openfreemap.org/) © OpenMapTiles / OpenStreetMap contributors ・
+Earthquake & ShakeMap data © [USGS](https://earthquake.usgs.gov/)
