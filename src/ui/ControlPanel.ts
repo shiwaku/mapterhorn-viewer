@@ -116,6 +116,36 @@ export class ControlPanel {
     return s;
   }
 
+  /** Section whose header carries the on/off toggle on the right of the title. */
+  private toggleSection(title: string, checked: boolean, on: (v: boolean) => void): HTMLElement {
+    const s = document.createElement('section');
+    s.className = 'mh-section';
+    const head = document.createElement('div');
+    head.className = 'mh-section-head';
+    const t = document.createElement('div');
+    t.className = 'mh-section-title';
+    t.textContent = title;
+    head.append(t, this.toggle(checked, on));
+    s.appendChild(head);
+    return s;
+  }
+
+  /** Compact label-less on/off toggle, used in section headers. */
+  private toggle(checked: boolean, on: (v: boolean) => void): HTMLElement {
+    const label = document.createElement('label');
+    label.className = 'mh-toggle';
+    label.setAttribute('aria-label', 'Toggle');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.checked = checked;
+    input.addEventListener('change', () => on(input.checked));
+    const track = document.createElement('span');
+    track.className = 'mh-track';
+    track.innerHTML = '<span class="mh-thumb"></span>';
+    label.append(input, track);
+    return label;
+  }
+
   /** iOS-style toggle switch row (label left, switch right). */
   private switchRow(label: string, checked: boolean, on: (v: boolean) => void): HTMLElement {
     const row = document.createElement('label');
@@ -232,17 +262,16 @@ export class ControlPanel {
   }
 
   private basemapSection(): HTMLElement {
-    const s = this.section('Base map');
-    s.appendChild(this.switchRow('OpenFreeMap vector', this.state.basemap, (v) => this.update({ basemap: v })));
+    const s = this.toggleSection('Base map', this.state.basemap, (v) => this.update({ basemap: v }));
     s.appendChild(
       this.segmented(BASEMAP_OPTIONS, this.state.basemapStyle, (v) => this.update({ basemapStyle: v })),
     );
+    s.appendChild(this.caption('OpenFreeMap vector base map.'));
     return s;
   }
 
   private hillshadeSection(): HTMLElement {
-    const s = this.section('Hillshade');
-    s.appendChild(this.switchRow('Enabled', this.state.hillshade, (v) => this.update({ hillshade: v })));
+    const s = this.toggleSection('Hillshade', this.state.hillshade, (v) => this.update({ hillshade: v }));
 
     const { row, select } = this.selectRow(HILLSHADE_METHODS, this.state.hillshadeMethod, () => {});
     select.addEventListener('change', () => {
@@ -268,8 +297,7 @@ export class ControlPanel {
   }
 
   private terrainSection(): HTMLElement {
-    const s = this.section('3D terrain');
-    s.appendChild(this.switchRow('Enabled', this.state.terrain, (v) => this.update({ terrain: v })));
+    const s = this.toggleSection('3D terrain', this.state.terrain, (v) => this.update({ terrain: v }));
     const { field } = this.sliderField(
       'Exaggeration',
       this.state.terrainExaggeration,
@@ -283,18 +311,14 @@ export class ControlPanel {
   }
 
   private contourSection(): HTMLElement {
-    const s = this.section('Contours');
-    s.appendChild(
-      this.switchRow('Enabled', this.state.contours, (v) => this.update({ contours: v })),
-    );
+    const s = this.toggleSection('Contours', this.state.contours, (v) => this.update({ contours: v }));
     s.appendChild(this.caption('Zoom in to reveal contour lines and elevation labels.'));
     return s;
   }
 
   private populationSection(): HTMLElement {
-    const s = this.section('Population · WorldPop');
-    s.appendChild(
-      this.switchRow('Enabled', this.state.population, (v) => this.update({ population: v })),
+    const s = this.toggleSection('Population · WorldPop', this.state.population, (v) =>
+      this.update({ population: v }),
     );
     const { field } = this.sliderField(
       'Opacity',
@@ -306,9 +330,11 @@ export class ControlPanel {
     );
     s.appendChild(field);
 
-    // Colour legend (people per 100 m cell, log-ish ramp).
+    // Colour legend. The ramp breaks are log-ish, so place the stops evenly
+    // across the bar (mapping raw values to % collapses the low end to nothing).
+    const last = POPULATION_LEGEND.length - 1;
     const stops = POPULATION_LEGEND.map(
-      (l) => `${l.color} ${Math.round((l.value / POPULATION_LEGEND[POPULATION_LEGEND.length - 1].value) * 100)}%`,
+      (l, i) => `${l.color} ${Math.round((i / last) * 100)}%`,
     ).join(', ');
     const legend = document.createElement('div');
     legend.className = 'mh-legend';
@@ -321,9 +347,8 @@ export class ControlPanel {
   }
 
   private earthquakeSection(): HTMLElement {
-    const s = this.section('Earthquakes · USGS');
-    s.appendChild(
-      this.switchRow('Enabled', this.state.earthquakes, (v) => this.update({ earthquakes: v })),
+    const s = this.toggleSection('Earthquakes · USGS', this.state.earthquakes, (v) =>
+      this.update({ earthquakes: v }),
     );
 
     // Feed selector (friendly labels).

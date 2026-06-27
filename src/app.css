@@ -3,6 +3,11 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
+  /* The map and panel are positioned out of flow; the document itself must
+     never scroll (mobile in-app webviews otherwise scroll the whole page,
+     dragging the panel off-screen and revealing blank background). */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 #map {

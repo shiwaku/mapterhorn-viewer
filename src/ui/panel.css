@@ -13,12 +13,15 @@
 }
 
 #panel.mh-panel {
-  position: absolute;
+  position: fixed;
   top: 14px;
   left: 14px;
   z-index: 10;
   width: 296px;
+  /* Bound to the *visible* viewport. dvh tracks mobile browser chrome
+     (address bars / in-app webview toolbars); calc(100% …) is the fallback. */
   max-height: calc(100% - 28px);
+  max-height: calc(100dvh - 28px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -102,6 +105,9 @@
 /* --- Body / sections ------------------------------------------------------ */
 .mh-body {
   overflow-y: auto;
+  /* min-height:0 lets this flex child shrink below its content so the panel
+     clamps to max-height and the body scrolls (instead of growing the panel). */
+  min-height: 0;
   padding: 4px 14px 14px;
 }
 .mh-section {
@@ -118,6 +124,19 @@
   letter-spacing: 0.07em;
   color: var(--mh-faint);
   margin-bottom: 10px;
+}
+/* Section header: title on the left, on/off toggle on the right. */
+.mh-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.mh-section-head .mh-section-title {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
 }
 
 .mh-caption {
@@ -140,10 +159,17 @@
 .mh-switch-text {
   font-weight: 500;
 }
-.mh-switch input {
+.mh-switch input,
+.mh-toggle input {
   position: absolute;
   opacity: 0;
   pointer-events: none;
+}
+/* Label-less header toggle reuses the switch track/thumb. */
+.mh-toggle {
+  flex: none;
+  display: inline-flex;
+  cursor: pointer;
 }
 .mh-track {
   position: relative;
@@ -165,13 +191,16 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
   transition: transform 0.18s ease;
 }
-.mh-switch input:checked + .mh-track {
+.mh-switch input:checked + .mh-track,
+.mh-toggle input:checked + .mh-track {
   background: var(--mh-accent);
 }
-.mh-switch input:checked + .mh-track .mh-thumb {
+.mh-switch input:checked + .mh-track .mh-thumb,
+.mh-toggle input:checked + .mh-track .mh-thumb {
   transform: translateX(16px);
 }
-.mh-switch input:focus-visible + .mh-track {
+.mh-switch input:focus-visible + .mh-track,
+.mh-toggle input:focus-visible + .mh-track {
   box-shadow: 0 0 0 3px var(--mh-accent-soft);
 }
 
