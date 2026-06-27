@@ -13,6 +13,14 @@ import { ControlPanel } from './ui/ControlPanel';
 // Register PMTiles routing + maplibre-contour DEM decoder before the map starts.
 registerProtocols(maplibregl);
 
+/** Reflect the focused event in the URL (`?event=<id>`) so a copied link reproduces it. */
+function setEventParam(id: string | null): void {
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set('event', id);
+  else url.searchParams.delete('event');
+  window.history.replaceState(window.history.state, '', url.toString());
+}
+
 /** Resolve the vector base style for a state (or undefined when the base map is off). */
 async function baseFor(state: ViewerState): Promise<StyleSpecification | undefined> {
   return state.basemap ? loadBasemapStyle(state.basemapStyle) : undefined;
@@ -94,6 +102,7 @@ async function init(): Promise<void> {
     if (!idOrUrl.trim()) {
       focus = undefined;
       focusMmi = undefined;
+      setEventParam(null);
       popup.remove();
       await applyState(currentState);
       return;
@@ -102,6 +111,9 @@ async function init(): Promise<void> {
       const ev = await loadEvent(idOrUrl);
       focus = ev.marker;
       focusMmi = ev.mmi ?? undefined;
+      // Write the canonical id to the URL so the current view is shareable.
+      const canonicalId = String((ev.marker.features[0] as { id?: unknown }).id ?? '').trim();
+      setEventParam(canonicalId || null);
       await applyState(currentState);
       // Frame the whole MMI footprint when available, else fly to the epicentre.
       if (ev.bbox) {
