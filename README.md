@@ -28,6 +28,7 @@
 - **Population (WorldPop)**: 全球 1 km の人口グリッドを「数値PNGタイル」で重畳。各画素が people/cell を
   24bit 整数（R×65536+G×256+B、α=欠損）でエンコードされ、`wppop://` プロトコルがクライアント側で
   デコード＋カラーランプ配色（不透明度スライダー・凡例つき）。タイルは外部ホスト（後述）。
+  **地図をクリックするとその地点のセル人口を表示**（PMTiles から z7 タイルの該当画素を読み出して復号）。
 - **Hillshade**: ON/OFF・手法（igor / multidirectional / standard / basic / combined）・誇張
 - **3D terrain**: ON/OFF・誇張
 - **Contours**: ON/OFF（ズームインで表示）

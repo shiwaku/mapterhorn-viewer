@@ -316,7 +316,7 @@ export class ControlPanel {
       `<span class="mh-legend-bar" style="background:linear-gradient(90deg, ${stops})"></span>` +
       '<span class="mh-legend-labels"><span>0</span><span>80,000+ /km²</span></span>';
     s.appendChild(legend);
-    s.appendChild(this.caption('WorldPop 2020, global 1 km grid (numeric PNG tiles, recoloured client-side).'));
+    s.appendChild(this.caption('WorldPop 2020, global 1 km grid. Click the map to read the value.'));
     return s;
   }
 

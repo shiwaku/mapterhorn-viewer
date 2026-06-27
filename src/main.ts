@@ -5,7 +5,7 @@ import './app.css';
 
 import { DEFAULT_STATE, DEFAULT_VIEW, POPULATION_PMTILES_URL, type ViewerState } from './config';
 import { registerProtocols } from './demSource';
-import { registerPopulation } from './population';
+import { registerPopulation, getPopulationAt } from './population';
 import { loadBasemapStyle } from './basemap';
 import { loadEarthquakes, loadEvent, type QuakeData, type GeoJsonFC } from './earthquakes';
 import { buildStyle } from './style';
@@ -95,7 +95,8 @@ async function init(): Promise<void> {
   const showPopup = (lngLat: maplibregl.LngLatLike, props: Record<string, unknown>) =>
     popup.setLngLat(lngLat).setHTML(quakePopupHtml(props)).addTo(map);
 
-  for (const layer of ['earthquakes', 'quake-focus-dot', 'quake-focus-halo']) {
+  const QUAKE_LAYERS = ['earthquakes', 'quake-focus-dot', 'quake-focus-halo'];
+  for (const layer of QUAKE_LAYERS) {
     map.on('click', layer, (e) => {
       const f = e.features?.[0];
       if (f) showPopup(e.lngLat, f.properties as Record<string, unknown>);
@@ -103,6 +104,27 @@ async function init(): Promise<void> {
     map.on('mouseenter', layer, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   }
+
+  // Click anywhere to read the WorldPop value (unless an earthquake was clicked).
+  map.on('click', async (e) => {
+    if (!currentState.population) return;
+    const onQuake = map.queryRenderedFeatures(e.point, {
+      layers: QUAKE_LAYERS.filter((id) => map.getLayer(id)),
+    });
+    if (onQuake.length) return;
+    const value = await getPopulationAt(e.lngLat.lng, e.lngLat.lat);
+    if (value == null) return;
+    popup
+      .setLngLat(e.lngLat)
+      .setHTML(
+        `<div class="mh-popup">
+          <div class="mh-popup-mag" style="color:#cc4c02">${Math.round(value).toLocaleString()}</div>
+          <div class="mh-popup-place">people · WorldPop 2020 (~1 km cell)</div>
+          <dl><dt>Lng, Lat</dt><dd>${e.lngLat.lng.toFixed(4)}, ${e.lngLat.lat.toFixed(4)}</dd></dl>
+        </div>`,
+      )
+      .addTo(map);
+  });
 
   /** Load a single USGS event + ShakeMap, highlight it, and frame it. Empty input clears it. */
   const focusEvent = async (idOrUrl: string): Promise<void> => {

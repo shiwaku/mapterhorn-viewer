@@ -83,13 +83,50 @@ interface MaplibreLike {
   addProtocol(name: string, fn: (...args: any[]) => any): void;
 }
 
-/** Register the `wppop://` protocol backed by a same-origin PMTiles archive. */
+let archive: PMTiles | null = null;
+
+/** Register the `wppop://` protocol backed by a PMTiles archive. */
 export function registerPopulation(maplibre: MaplibreLike, pmtilesUrl: string): void {
-  const archive = new PMTiles(pmtilesUrl);
+  archive = new PMTiles(pmtilesUrl);
   maplibre.addProtocol('wppop', async (params: { url: string }) => {
     const [z, x, y] = params.url.replace('wppop://', '').split('/').map(Number);
-    const tile = await archive.getZxy(z, x, y);
+    const tile = await archive!.getZxy(z, x, y);
     if (!tile || !tile.data) return { data: null }; // empty/sea tile → nothing drawn
     return { data: await colorize(tile.data) };
   });
+}
+
+/** Decode the single encoded pixel (px,py) of a tile PNG → people, or null if nodata. */
+async function decodePixel(buffer: ArrayBuffer, px: number, py: number): Promise<number | null> {
+  const bitmap = await createImageBitmap(new Blob([buffer]));
+  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const [r, g, b, a] = ctx.getImageData(px, py, 1, 1).data;
+  if (a === 0) return null;
+  const value = (r * 65536 + g * 256 + b) / SCALE;
+  return value > 0 ? value : null;
+}
+
+/**
+ * Read the WorldPop value (people per ~1 km cell) at a lng/lat by sampling the
+ * native-zoom tile from the PMTiles archive. Returns null over nodata/sea.
+ */
+export async function getPopulationAt(lng: number, lat: number): Promise<number | null> {
+  if (!archive) return null;
+  const z = WPPOP_MAXZOOM;
+  const n = 2 ** z;
+  const wrapped = (((lng + 180) % 360) + 360) % 360 - 180;
+  const xt = ((wrapped + 180) / 360) * n;
+  const latRad = (lat * Math.PI) / 180;
+  const yt = ((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2) * n;
+  if (yt < 0 || yt >= n) return null;
+  const tx = Math.floor(xt);
+  const ty = Math.floor(yt);
+  const px = Math.min(255, Math.floor((xt - tx) * 256));
+  const py = Math.min(255, Math.floor((yt - ty) * 256));
+  const tile = await archive.getZxy(z, tx, ty);
+  if (!tile || !tile.data) return null;
+  return decodePixel(tile.data, px, py);
 }
