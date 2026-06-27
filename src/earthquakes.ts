@@ -22,8 +22,54 @@ export function parseEventId(input: string): string {
   return last ?? s;
 }
 
-/** Fetch a single USGS event by id (or event-page URL) as a one-feature collection. */
-export async function loadEvent(idOrUrl: string): Promise<QuakeData> {
+/** Generic GeoJSON FeatureCollection (used for ShakeMap contour lines). */
+export interface GeoJsonFC {
+  type: 'FeatureCollection';
+  features: Array<{ geometry: { coordinates: unknown }; properties: Record<string, unknown> }>;
+}
+
+export interface FocusedEvent {
+  /** One-point collection for the epicentre marker. */
+  marker: QuakeData;
+  /** ShakeMap MMI contour lines, or null when the event has no ShakeMap. */
+  mmi: GeoJsonFC | null;
+  center: [number, number];
+  /** [west, south, east, north] of the MMI footprint, when available. */
+  bbox: [number, number, number, number] | null;
+}
+
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+const toRoman = (n: number): string => (Number.isInteger(n) && n >= 1 && n <= 12 ? ROMAN[n] : '');
+
+/** Pull the cont_mmi.json download URL out of an event's ShakeMap product. */
+function shakeMmiUrl(feature: { properties?: Record<string, unknown> }): string | null {
+  const products = (feature.properties as { products?: Record<string, unknown> })?.products;
+  const shakemap = (products as { shakemap?: unknown[] })?.shakemap;
+  const contents = (shakemap?.[0] as { contents?: Record<string, { url?: string }> })?.contents;
+  return contents?.['download/cont_mmi.json']?.url ?? null;
+}
+
+/** Bounding box of every coordinate in a MultiLineString FeatureCollection. */
+function bboxOf(fc: GeoJsonFC): [number, number, number, number] | null {
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
+  const visit = (node: unknown): void => {
+    if (Array.isArray(node) && typeof node[0] === 'number' && typeof node[1] === 'number') {
+      const [lng, lat] = node as number[];
+      w = Math.min(w, lng); e = Math.max(e, lng);
+      s = Math.min(s, lat); n = Math.max(n, lat);
+    } else if (Array.isArray(node)) {
+      node.forEach(visit);
+    }
+  };
+  fc.features.forEach((f) => visit(f.geometry?.coordinates));
+  return Number.isFinite(w) ? [w, s, e, n] : null;
+}
+
+/**
+ * Fetch a single USGS event (id or event-page URL): the epicentre marker plus,
+ * when present, its ShakeMap MMI contours (with roman-numeral labels added).
+ */
+export async function loadEvent(idOrUrl: string): Promise<FocusedEvent> {
   const id = parseEventId(idOrUrl);
   const url = `https://earthquake.usgs.gov/fdsnws/event/1/query?eventid=${encodeURIComponent(id)}&format=geojson`;
   const r = await fetch(url);
@@ -32,7 +78,30 @@ export async function loadEvent(idOrUrl: string): Promise<QuakeData> {
   const coords = feature.geometry?.coordinates;
   feature.properties = feature.properties ?? {};
   feature.properties.depth = Array.isArray(coords) ? coords[2] : null;
-  return { type: 'FeatureCollection', features: [feature] };
+  const center: [number, number] = [coords[0], coords[1]];
+
+  let mmi: GeoJsonFC | null = null;
+  let bbox: [number, number, number, number] | null = null;
+  const mmiUrl = shakeMmiUrl(feature);
+  if (mmiUrl) {
+    try {
+      const cr = await fetch(mmiUrl);
+      if (cr.ok) {
+        mmi = (await cr.json()) as GeoJsonFC;
+        // Roman-numeral label for whole-number MMI levels (half levels stay blank).
+        for (const f of mmi.features) {
+          const v = f.properties?.value;
+          f.properties = f.properties ?? {};
+          f.properties.label = typeof v === 'number' ? toRoman(v) : '';
+        }
+        bbox = bboxOf(mmi);
+      }
+    } catch {
+      /* ShakeMap optional — ignore fetch errors */
+    }
+  }
+
+  return { marker: { type: 'FeatureCollection', features: [feature] }, mmi, center, bbox };
 }
 
 /**

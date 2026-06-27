@@ -6,7 +6,7 @@ import './app.css';
 import { DEFAULT_STATE, DEFAULT_VIEW, type ViewerState } from './config';
 import { registerProtocols } from './demSource';
 import { loadBasemapStyle } from './basemap';
-import { loadEarthquakes, loadEvent, type QuakeData } from './earthquakes';
+import { loadEarthquakes, loadEvent, type QuakeData, type GeoJsonFC } from './earthquakes';
 import { buildStyle } from './style';
 import { ControlPanel } from './ui/ControlPanel';
 
@@ -62,12 +62,13 @@ async function init(): Promise<void> {
   // Latest applied state + the focused single event (independent of the feed).
   let currentState: ViewerState = DEFAULT_STATE;
   let focus: QuakeData | undefined;
+  let focusMmi: GeoJsonFC | undefined;
 
   const applyState = async (state: ViewerState): Promise<void> => {
     currentState = state;
     try {
       const [nextBase, nextQuakes] = await Promise.all([baseFor(state), quakesFor(state)]);
-      map.setStyle(buildStyle(state, nextBase, nextQuakes, focus), { diff: true });
+      map.setStyle(buildStyle(state, nextBase, nextQuakes, focus, focusMmi), { diff: true });
     } catch (err) {
       console.error(err);
     }
@@ -88,22 +89,27 @@ async function init(): Promise<void> {
     map.on('mouseleave', layer, () => { map.getCanvas().style.cursor = ''; });
   }
 
-  /** Load a single USGS event by id/URL, highlight it, and fly there. Empty input clears it. */
+  /** Load a single USGS event + ShakeMap, highlight it, and frame it. Empty input clears it. */
   const focusEvent = async (idOrUrl: string): Promise<void> => {
     if (!idOrUrl.trim()) {
       focus = undefined;
+      focusMmi = undefined;
       popup.remove();
       await applyState(currentState);
       return;
     }
     try {
-      const data = await loadEvent(idOrUrl);
-      focus = data;
+      const ev = await loadEvent(idOrUrl);
+      focus = ev.marker;
+      focusMmi = ev.mmi ?? undefined;
       await applyState(currentState);
-      const f = data.features[0];
-      const [lng, lat] = f.geometry.coordinates;
-      map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 7.5), speed: 1.2 });
-      showPopup([lng, lat], f.properties as Record<string, unknown>);
+      // Frame the whole MMI footprint when available, else fly to the epicentre.
+      if (ev.bbox) {
+        map.fitBounds(ev.bbox, { padding: 70, maxZoom: 10, pitch: 0 });
+      } else {
+        map.flyTo({ center: ev.center, zoom: Math.max(map.getZoom(), 7.5), speed: 1.2 });
+      }
+      showPopup(ev.center, ev.marker.features[0].properties as Record<string, unknown>);
     } catch (err) {
       console.error(err);
       window.alert(String(err instanceof Error ? err.message : err));

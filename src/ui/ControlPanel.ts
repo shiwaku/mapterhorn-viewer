@@ -318,6 +318,11 @@ export class ControlPanel {
     s.appendChild(legend);
     s.appendChild(this.caption('Circle size = magnitude · colour = depth. Click a quake for details.'));
 
+    // ShakeMap MMI contours for the focused event.
+    s.appendChild(
+      this.switchRow('ShakeMap MMI contours', this.state.shakemap, (v) => this.update({ shakemap: v })),
+    );
+
     // Locate a specific event by id / event-page URL and fly to it.
     const find = document.createElement('div');
     find.className = 'mh-find';

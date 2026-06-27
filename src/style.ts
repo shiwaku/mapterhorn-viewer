@@ -1,7 +1,7 @@
 import type { StyleSpecification, LayerSpecification } from 'maplibre-gl';
 import { demSourceSpec, contourSourceSpec } from './demSource';
 import { HILLSHADE_PRESETS, USGS_ATTRIBUTION, type ViewerState } from './config';
-import type { QuakeData } from './earthquakes';
+import type { QuakeData, GeoJsonFC } from './earthquakes';
 
 /** Loosely-typed hillshade paint bag (the multidirectional arrays aren't in the 5.6 paint types). */
 export type HillshadePaint = Record<string, unknown>;
@@ -80,6 +80,39 @@ function earthquakeLayer(): LayerSpecification {
   } as unknown as LayerSpecification;
 }
 
+/** ShakeMap MMI contours: lines coloured by the feed's own `color`, with roman labels. */
+function mmiLayers(): LayerSpecification[] {
+  return [
+    {
+      id: 'shakemap-mmi-lines',
+      type: 'line',
+      source: 'shakemap-mmi',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': ['get', 'color'],
+        'line-width': ['case', ['==', ['get', 'weight'], 4], 2.6, 1.4],
+        'line-opacity': 0.9,
+      },
+    } as unknown as LayerSpecification,
+    {
+      id: 'shakemap-mmi-labels',
+      type: 'symbol',
+      source: 'shakemap-mmi',
+      layout: {
+        'symbol-placement': 'line',
+        'text-field': ['get', 'label'],
+        'text-size': 13,
+        'text-font': ['Noto Sans Regular'],
+      },
+      paint: {
+        'text-color': '#1a1a1a',
+        'text-halo-color': '#ffffff',
+        'text-halo-width': 2,
+      },
+    } as unknown as LayerSpecification,
+  ];
+}
+
 /** Highlight ring + dot for a single focused event. */
 function focusLayers(): LayerSpecification[] {
   return [
@@ -121,6 +154,7 @@ export function buildStyle(
   base?: StyleSpecification,
   quakes?: QuakeData,
   focus?: QuakeData,
+  mmi?: GeoJsonFC,
 ): StyleSpecification {
   // --- Base map ON: merge into the vector style ------------------------------
   if (state.basemap && base) {
@@ -150,6 +184,10 @@ export function buildStyle(
       style.sources.earthquakes = { type: 'geojson', data: quakes as never, attribution: USGS_ATTRIBUTION };
       style.layers.push(earthquakeLayer());
     }
+    if (state.shakemap && mmi) {
+      style.sources['shakemap-mmi'] = { type: 'geojson', data: mmi as never, attribution: USGS_ATTRIBUTION };
+      style.layers.push(...mmiLayers());
+    }
     if (focus) {
       style.sources['quake-focus'] = { type: 'geojson', data: focus as never, attribution: USGS_ATTRIBUTION };
       style.layers.push(...focusLayers());
@@ -171,6 +209,10 @@ export function buildStyle(
   if (state.earthquakes && quakes) {
     sources.earthquakes = { type: 'geojson', data: quakes as never, attribution: USGS_ATTRIBUTION };
     layers.push(earthquakeLayer());
+  }
+  if (state.shakemap && mmi) {
+    sources['shakemap-mmi'] = { type: 'geojson', data: mmi as never, attribution: USGS_ATTRIBUTION };
+    layers.push(...mmiLayers());
   }
   if (focus) {
     sources['quake-focus'] = { type: 'geojson', data: focus as never, attribution: USGS_ATTRIBUTION };

@@ -26,6 +26,8 @@ export interface ViewerState {
   contours: boolean;
   earthquakes: boolean;
   quakeFeed: QuakeFeed;
+  /** Show ShakeMap MMI contours for the focused event (when available). */
+  shakemap: boolean;
 }
 
 // --- Endpoints -------------------------------------------------------------
@@ -80,6 +82,7 @@ export const DEFAULT_STATE: ViewerState = {
   contours: false,
   earthquakes: false,
   quakeFeed: '4.5_month',
+  shakemap: true,
 };
 
 // --- Hillshade presets (values lifted from the official examples) ----------
