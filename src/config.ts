@@ -9,6 +9,9 @@ export type HillshadeMethod = 'standard' | 'basic' | 'combined' | 'igor' | 'mult
 /** OpenFreeMap vector base-map styles (free, no API key). */
 export type BasemapStyle = 'liberty' | 'bright' | 'positron';
 
+/** USGS earthquake summary feeds. */
+export type QuakeFeed = 'significant_month' | '4.5_month' | '2.5_week' | 'all_day';
+
 export interface ViewerState {
   source: SourceMode;
   basemap: boolean;
@@ -21,6 +24,8 @@ export interface ViewerState {
   /** 0–2, bound to the terrain `exaggeration`. */
   terrainExaggeration: number;
   contours: boolean;
+  earthquakes: boolean;
+  quakeFeed: QuakeFeed;
 }
 
 // --- Endpoints -------------------------------------------------------------
@@ -36,8 +41,19 @@ export const BASEMAP_STYLE_URLS: Record<BasemapStyle, string> = {
   positron: 'https://tiles.openfreemap.org/styles/positron',
 };
 
+/** USGS earthquake summary feeds (GeoJSON, CORS-enabled). */
+const USGS_FEED_BASE = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary';
+export const QUAKE_FEEDS: Record<QuakeFeed, string> = {
+  significant_month: `${USGS_FEED_BASE}/significant_month.geojson`,
+  '4.5_month': `${USGS_FEED_BASE}/4.5_month.geojson`,
+  '2.5_week': `${USGS_FEED_BASE}/2.5_week.geojson`,
+  all_day: `${USGS_FEED_BASE}/all_day.geojson`,
+};
+
 export const MAPTERHORN_ATTRIBUTION =
   '<a href="https://mapterhorn.com/attribution">© Mapterhorn</a>';
+export const USGS_ATTRIBUTION =
+  '<a href="https://earthquake.usgs.gov/">USGS Earthquake Hazards</a>';
 
 /** Native zoom of the DEM tiles (z13–z17 archives); deeper is overzoomed. */
 export const DEM_MAX_ZOOM = 17;
@@ -62,6 +78,8 @@ export const DEFAULT_STATE: ViewerState = {
   terrain: true,
   terrainExaggeration: 1,
   contours: false,
+  earthquakes: false,
+  quakeFeed: '4.5_month',
 };
 
 // --- Hillshade presets (values lifted from the official examples) ----------

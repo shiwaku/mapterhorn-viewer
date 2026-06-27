@@ -17,6 +17,9 @@
 - **Data source**: TileJSON / zxy-http / PMTiles を切替（hillshade と 3D 地形に作用）
 - **Base map**: ベクトルタイル（[OpenFreeMap](https://openfreemap.org/), OSM ベース・無料・APIキー不要）の ON/OFF と
   スタイル選択（Liberty / Bright / Positron）。陰影は base map のラベルの下に挿入される。
+- **Earthquakes (USGS)**: [USGS](https://earthquake.usgs.gov/) のリアルタイム地震フィード（GeoJSON）を重畳。
+  フィード選択（Significant 30d / M4.5+ 30d / M2.5+ 7d / All 24h）、円の大きさ=マグニチュード・色=深さ、
+  クリックでポップアップ（場所・M・深さ・時刻・USGS イベントページへのリンク）。
 - **Hillshade**: ON/OFF・手法（igor / multidirectional / standard / basic / combined）・誇張
 - **3D terrain**: ON/OFF・誇張
 - **Contours**: ON/OFF（ズームインで表示）

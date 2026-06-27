@@ -1,6 +1,7 @@
 import type { StyleSpecification, LayerSpecification } from 'maplibre-gl';
 import { demSourceSpec, contourSourceSpec } from './demSource';
-import { HILLSHADE_PRESETS, type ViewerState } from './config';
+import { HILLSHADE_PRESETS, USGS_ATTRIBUTION, type ViewerState } from './config';
+import type { QuakeData } from './earthquakes';
 
 /** Loosely-typed hillshade paint bag (the multidirectional arrays aren't in the 5.6 paint types). */
 export type HillshadePaint = Record<string, unknown>;
@@ -57,6 +58,28 @@ function contourLayers(): LayerSpecification[] {
   ];
 }
 
+/** USGS earthquakes: size by magnitude, colour by depth (km) — shallow red → deep blue. */
+function earthquakeLayer(): LayerSpecification {
+  return {
+    id: 'earthquakes',
+    type: 'circle',
+    source: 'earthquakes',
+    paint: {
+      'circle-radius': [
+        'interpolate', ['linear'], ['coalesce', ['get', 'mag'], 1],
+        2, 3, 4, 6, 5, 10, 6, 15, 7, 22, 8, 32,
+      ],
+      'circle-color': [
+        'interpolate', ['linear'], ['coalesce', ['get', 'depth'], 0],
+        0, '#d73027', 70, '#fc8d59', 150, '#fee090', 300, '#91bfdb', 700, '#4575b4',
+      ],
+      'circle-opacity': 0.78,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': 'rgba(20,20,20,0.55)',
+    },
+  } as unknown as LayerSpecification;
+}
+
 /**
  * Build a complete MapLibre style from the viewer state. Pure function.
  *
@@ -65,7 +88,11 @@ function contourLayers(): LayerSpecification[] {
  * just below the base map's first label so terrain shading sits under text.
  * When disabled, our layers render on a blank style.
  */
-export function buildStyle(state: ViewerState, base?: StyleSpecification): StyleSpecification {
+export function buildStyle(
+  state: ViewerState,
+  base?: StyleSpecification,
+  quakes?: QuakeData,
+): StyleSpecification {
   // --- Base map ON: merge into the vector style ------------------------------
   if (state.basemap && base) {
     const style: StyleSpecification = structuredClone(base);
@@ -89,6 +116,11 @@ export function buildStyle(state: ViewerState, base?: StyleSpecification): Style
       style.terrain = { source: DEM_TERRAIN, exaggeration: state.terrainExaggeration };
       style.sky = {};
     }
+    // Earthquakes sit on top of everything (including labels).
+    if (state.earthquakes && quakes) {
+      style.sources.earthquakes = { type: 'geojson', data: quakes as never, attribution: USGS_ATTRIBUTION };
+      style.layers.push(earthquakeLayer());
+    }
     return style;
   }
 
@@ -102,6 +134,10 @@ export function buildStyle(state: ViewerState, base?: StyleSpecification): Style
   if (state.contours) {
     sources.contours = contourSourceSpec();
     layers.push(...contourLayers());
+  }
+  if (state.earthquakes && quakes) {
+    sources.earthquakes = { type: 'geojson', data: quakes as never, attribution: USGS_ATTRIBUTION };
+    layers.push(earthquakeLayer());
   }
 
   const style: StyleSpecification = {

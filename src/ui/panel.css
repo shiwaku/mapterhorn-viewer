@@ -290,6 +290,24 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* --- Earthquake depth legend ---------------------------------------------- */
+.mh-legend {
+  margin-top: 11px;
+}
+.mh-legend-bar {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d73027 0%, #fc8d59 18%, #fee090 30%, #91bfdb 60%, #4575b4 100%);
+}
+.mh-legend-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--mh-faint);
+}
+
 /* --- Scrollbar ------------------------------------------------------------ */
 .mh-body::-webkit-scrollbar {
   width: 8px;

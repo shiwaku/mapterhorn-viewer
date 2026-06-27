@@ -3,6 +3,7 @@ import {
   HILLSHADE_PRESETS,
   type BasemapStyle,
   type HillshadeMethod,
+  type QuakeFeed,
   type SourceMode,
   type ViewerState,
 } from '../config';
@@ -25,6 +26,13 @@ const HILLSHADE_METHODS: HillshadeMethod[] = [
   'standard',
   'basic',
   'combined',
+];
+
+const QUAKE_FEED_OPTIONS: { value: QuakeFeed; label: string }[] = [
+  { value: 'significant_month', label: 'Significant · 30d' },
+  { value: '4.5_month', label: 'M4.5+ · 30d' },
+  { value: '2.5_week', label: 'M2.5+ · 7d' },
+  { value: 'all_day', label: 'All · 24h' },
 ];
 
 export class ControlPanel {
@@ -58,6 +66,7 @@ export class ControlPanel {
       this.hillshadeSection(),
       this.terrainSection(),
       this.contourSection(),
+      this.earthquakeSection(),
     );
     this.el.appendChild(body);
   }
@@ -270,6 +279,37 @@ export class ControlPanel {
       this.switchRow('Enabled', this.state.contours, (v) => this.update({ contours: v })),
     );
     s.appendChild(this.caption('Zoom in to reveal contour lines and elevation labels.'));
+    return s;
+  }
+
+  private earthquakeSection(): HTMLElement {
+    const s = this.section('Earthquakes · USGS');
+    s.appendChild(
+      this.switchRow('Enabled', this.state.earthquakes, (v) => this.update({ earthquakes: v })),
+    );
+
+    // Feed selector (friendly labels).
+    const row = document.createElement('div');
+    row.className = 'mh-select';
+    const select = document.createElement('select');
+    QUAKE_FEED_OPTIONS.forEach((opt) => {
+      const o = document.createElement('option');
+      o.value = opt.value;
+      o.textContent = opt.label;
+      o.selected = this.state.quakeFeed === opt.value;
+      select.appendChild(o);
+    });
+    select.addEventListener('change', () => this.update({ quakeFeed: select.value as QuakeFeed }));
+    row.appendChild(select);
+    s.appendChild(row);
+
+    // Depth colour legend (shallow → deep).
+    const legend = document.createElement('div');
+    legend.className = 'mh-legend';
+    legend.innerHTML =
+      '<span class="mh-legend-bar"></span><span class="mh-legend-labels"><span>0 km</span><span>700 km</span></span>';
+    s.appendChild(legend);
+    s.appendChild(this.caption('Circle size = magnitude · colour = depth. Click a quake for details.'));
     return s;
   }
 }

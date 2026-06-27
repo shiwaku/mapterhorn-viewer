@@ -9,3 +9,41 @@ body {
   position: absolute;
   inset: 0;
 }
+
+/* Earthquake popup */
+.mh-popup {
+  font: 13px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: #0f172a;
+  min-width: 170px;
+}
+.mh-popup-mag {
+  font-size: 18px;
+  font-weight: 700;
+  color: #d73027;
+  line-height: 1.1;
+}
+.mh-popup-place {
+  margin: 2px 0 7px;
+  font-weight: 500;
+}
+.mh-popup dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 10px;
+  margin: 0 0 7px;
+}
+.mh-popup dt {
+  color: #64748b;
+}
+.mh-popup dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.mh-popup a {
+  color: #2f6df6;
+  text-decoration: none;
+  font-weight: 500;
+}
+.mh-popup a:hover {
+  text-decoration: underline;
+}
