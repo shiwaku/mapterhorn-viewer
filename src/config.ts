@@ -62,7 +62,7 @@ export const QUAKE_FEEDS: Record<QuakeFeed, string> = {
  * support HTTP Range requests. Override at runtime with `?pop=<url>`.
  */
 export const POPULATION_PMTILES_URL =
-  'https://example.com/worldpop/worldpop_global_1km.pmtiles';
+  'https://xs489works.xsrv.jp/pmtiles-data/WorldPop/worldpop_global_1km.pmtiles';
 
 export const MAPTERHORN_ATTRIBUTION =
   '<a href="https://mapterhorn.com/attribution">© Mapterhorn</a>';
