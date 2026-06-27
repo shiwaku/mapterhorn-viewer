@@ -363,6 +363,14 @@
 
 @media (max-width: 480px) {
   #panel.mh-panel {
-    width: calc(100% - 28px);
+    width: 232px;
+    top: 10px;
+    left: 10px;
+    font-size: 12.5px;
+    /* never exceed the viewport on very narrow phones */
+    max-width: calc(100% - 20px);
+  }
+  .mh-body {
+    padding: 4px 12px 12px;
   }
 }
