@@ -3,8 +3,9 @@ import type { Map as MlMap, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './app.css';
 
-import { DEFAULT_STATE, DEFAULT_VIEW, type ViewerState } from './config';
+import { DEFAULT_STATE, DEFAULT_VIEW, POPULATION_PMTILES_URL, type ViewerState } from './config';
 import { registerProtocols } from './demSource';
+import { registerPopulation } from './population';
 import { loadBasemapStyle } from './basemap';
 import { loadEarthquakes, loadEvent, type QuakeData, type GeoJsonFC } from './earthquakes';
 import { buildStyle } from './style';
@@ -12,6 +13,12 @@ import { ControlPanel } from './ui/ControlPanel';
 
 // Register PMTiles routing + maplibre-contour DEM decoder before the map starts.
 registerProtocols(maplibregl);
+
+// WorldPop population: numeric PNG tiles served from an external PMTiles
+// archive (rental server). `?pop=<url>` overrides the configured default.
+const POPULATION_PMTILES =
+  new URLSearchParams(window.location.search).get('pop') || POPULATION_PMTILES_URL;
+registerPopulation(maplibregl, POPULATION_PMTILES);
 
 /** Reflect the focused event in the URL (`?event=<id>`) so a copied link reproduces it. */
 function setEventParam(id: string | null): void {

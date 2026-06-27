@@ -28,6 +28,10 @@ export interface ViewerState {
   quakeFeed: QuakeFeed;
   /** Show ShakeMap MMI contours for the focused event (when available). */
   shakemap: boolean;
+  /** WorldPop population grid (numeric PNG tiles). */
+  population: boolean;
+  /** 0–1, bound to the population layer's raster-opacity. */
+  populationOpacity: number;
 }
 
 // --- Endpoints -------------------------------------------------------------
@@ -51,6 +55,14 @@ export const QUAKE_FEEDS: Record<QuakeFeed, string> = {
   '2.5_week': `${USGS_FEED_BASE}/2.5_week.geojson`,
   all_day: `${USGS_FEED_BASE}/all_day.geojson`,
 };
+
+/**
+ * WorldPop global 1 km "numeric PNG tiles" PMTiles archive, hosted externally
+ * (rental server). Must send CORS headers (Access-Control-Allow-Origin) and
+ * support HTTP Range requests. Override at runtime with `?pop=<url>`.
+ */
+export const POPULATION_PMTILES_URL =
+  'https://example.com/worldpop/worldpop_global_1km.pmtiles';
 
 export const MAPTERHORN_ATTRIBUTION =
   '<a href="https://mapterhorn.com/attribution">© Mapterhorn</a>';
@@ -83,6 +95,8 @@ export const DEFAULT_STATE: ViewerState = {
   earthquakes: false,
   quakeFeed: '4.5_month',
   shakemap: true,
+  population: false,
+  populationOpacity: 0.8,
 };
 
 // --- Hillshade presets (values lifted from the official examples) ----------

@@ -25,12 +25,26 @@
     （例: `…/mapterhorn-viewer/?event=atth5pbk`）。
   - **ShakeMap MMI コンタ**：そのイベントに ShakeMap があれば、揺れの強さ（MMI 震度）の等値線を
     USGS 公式の色で重畳（ローマ数字ラベル付き）。トグルで ON/OFF。
+- **Population (WorldPop)**: 全球 1 km の人口グリッドを「数値PNGタイル」で重畳。各画素が people/cell を
+  24bit 整数（R×65536+G×256+B、α=欠損）でエンコードされ、`wppop://` プロトコルがクライアント側で
+  デコード＋カラーランプ配色（不透明度スライダー・凡例つき）。タイルは外部ホスト（後述）。
 - **Hillshade**: ON/OFF・手法（igor / multidirectional / standard / basic / combined）・誇張
 - **3D terrain**: ON/OFF・誇張
 - **Contours**: ON/OFF（ズームインで表示）
 
 > 注: 等高線は maplibre-contour が DEM を直接 `fetch()` するため、データソース設定に
 > かかわらず常に zxy エンドポイント（`tiles.mapterhorn.com/{z}/{x}/{y}.webp`）を使用します。
+
+### 人口グリッド（WorldPop）の配信
+
+全球1kmの数値PNGタイルは PMTiles（`worldpop_global_1km.pmtiles`, 約140MB, z0–7）として
+**外部サーバーにホスト**します（リポジトリには同梱しない）。
+
+- 生成元：WorldPop 2020 `ppp_2020_1km_Aggregated`（GeoTIFF）→ `N=round(pop×10)` を RGB エンコード →
+  Web Mercator(nearest) → MBTiles → PMTiles。
+- 配信URL：`src/config.ts` の `POPULATION_PMTILES_URL` に設定（既定はプレースホルダ）。
+  実行時に `?pop=<url>` で上書き可能。
+- **サーバー要件**：CORS（`Access-Control-Allow-Origin`）と **HTTP Range** に対応していること。
 
 ## 技術スタック
 
@@ -90,4 +104,5 @@ src/
 
 Terrain data © [Mapterhorn](https://mapterhorn.com/attribution) ・
 Base map [OpenFreeMap](https://openfreemap.org/) © OpenMapTiles / OpenStreetMap contributors ・
-Earthquake & ShakeMap data © [USGS](https://earthquake.usgs.gov/)
+Earthquake & ShakeMap data © [USGS](https://earthquake.usgs.gov/) ・
+Population © [WorldPop](https://www.worldpop.org/)

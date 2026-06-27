@@ -7,6 +7,7 @@ import {
   type SourceMode,
   type ViewerState,
 } from '../config';
+import { POPULATION_LEGEND } from '../population';
 
 const SOURCE_OPTIONS: { value: SourceMode; label: string }[] = [
   { value: 'tilejson', label: 'TileJSON' },
@@ -73,6 +74,7 @@ export class ControlPanel {
       this.hillshadeSection(),
       this.terrainSection(),
       this.contourSection(),
+      this.populationSection(),
       this.earthquakeSection(),
     );
     this.el.appendChild(body);
@@ -286,6 +288,35 @@ export class ControlPanel {
       this.switchRow('Enabled', this.state.contours, (v) => this.update({ contours: v })),
     );
     s.appendChild(this.caption('Zoom in to reveal contour lines and elevation labels.'));
+    return s;
+  }
+
+  private populationSection(): HTMLElement {
+    const s = this.section('Population · WorldPop');
+    s.appendChild(
+      this.switchRow('Enabled', this.state.population, (v) => this.update({ population: v })),
+    );
+    const { field } = this.sliderField(
+      'Opacity',
+      this.state.populationOpacity,
+      0,
+      1,
+      0.05,
+      (v) => this.update({ populationOpacity: v }),
+    );
+    s.appendChild(field);
+
+    // Colour legend (people per 100 m cell, log-ish ramp).
+    const stops = POPULATION_LEGEND.map(
+      (l) => `${l.color} ${Math.round((l.value / POPULATION_LEGEND[POPULATION_LEGEND.length - 1].value) * 100)}%`,
+    ).join(', ');
+    const legend = document.createElement('div');
+    legend.className = 'mh-legend';
+    legend.innerHTML =
+      `<span class="mh-legend-bar" style="background:linear-gradient(90deg, ${stops})"></span>` +
+      '<span class="mh-legend-labels"><span>0</span><span>80,000+ /km²</span></span>';
+    s.appendChild(legend);
+    s.appendChild(this.caption('WorldPop 2020, global 1 km grid (numeric PNG tiles, recoloured client-side).'));
     return s;
   }
 

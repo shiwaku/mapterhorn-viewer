@@ -2,6 +2,9 @@ import type { StyleSpecification, LayerSpecification } from 'maplibre-gl';
 import { demSourceSpec, contourSourceSpec } from './demSource';
 import { HILLSHADE_PRESETS, USGS_ATTRIBUTION, type ViewerState } from './config';
 import type { QuakeData, GeoJsonFC } from './earthquakes';
+import { WPPOP_MAXZOOM } from './population';
+
+const WORLDPOP_ATTRIBUTION = '<a href="https://www.worldpop.org/">© WorldPop</a>';
 
 /** Loosely-typed hillshade paint bag (the multidirectional arrays aren't in the 5.6 paint types). */
 export type HillshadePaint = Record<string, unknown>;
@@ -113,6 +116,25 @@ function mmiLayers(): LayerSpecification[] {
   ];
 }
 
+/** WorldPop population raster (decoded + coloured client-side via the wppop:// protocol). */
+function populationSource(): Record<string, unknown> {
+  return {
+    type: 'raster',
+    tiles: ['wppop://{z}/{x}/{y}'],
+    tileSize: 256,
+    maxzoom: WPPOP_MAXZOOM,
+    attribution: WORLDPOP_ATTRIBUTION,
+  };
+}
+function populationLayer(opacity: number): LayerSpecification {
+  return {
+    id: 'population',
+    type: 'raster',
+    source: 'population',
+    paint: { 'raster-opacity': opacity, 'raster-resampling': 'nearest' },
+  } as unknown as LayerSpecification;
+}
+
 /** Highlight ring + dot for a single focused event. */
 function focusLayers(): LayerSpecification[] {
   return [
@@ -165,6 +187,10 @@ export function buildStyle(
 
     const inject: LayerSpecification[] = [];
     if (state.hillshade) inject.push(hillshadeLayer(state));
+    if (state.population) {
+      style.sources.population = populationSource() as never;
+      inject.push(populationLayer(state.populationOpacity));
+    }
     if (state.contours) {
       style.sources.contours = contourSourceSpec();
       inject.push(...contourLayers());
@@ -202,6 +228,10 @@ export function buildStyle(
   if (state.hillshade) sources[DEM_HILLSHADE] = demSourceSpec(state.source);
   if (state.terrain) sources[DEM_TERRAIN] = demSourceSpec(state.source);
   if (state.hillshade) layers.push(hillshadeLayer(state));
+  if (state.population) {
+    sources.population = populationSource() as never;
+    layers.push(populationLayer(state.populationOpacity));
+  }
   if (state.contours) {
     sources.contours = contourSourceSpec();
     layers.push(...contourLayers());
