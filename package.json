@@ -1,0 +1,21 @@
+{
+  "name": "mapterhorn-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Integrated MapLibre viewer for Mapterhorn global terrain tiles (combines the 5 official examples).",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "maplibre-contour": "0.0.5",
+    "maplibre-gl": "5.6.0",
+    "pmtiles": "4.3.0"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vite": "8.1.0"
+  }
+}
