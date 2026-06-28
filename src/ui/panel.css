@@ -155,13 +155,19 @@
   cursor: pointer;
   user-select: none;
   padding: 3px 0;
+  position: relative; /* contain the hidden input — prevents mobile scroll-to-input on label tap */
 }
 .mh-switch-text {
   font-weight: 500;
+  flex: 1;
+  min-width: 0;
 }
 .mh-switch input,
 .mh-toggle input {
   position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
 }
@@ -170,6 +176,7 @@
   flex: none;
   display: inline-flex;
   cursor: pointer;
+  position: relative; /* contain the hidden input — prevents mobile scroll-to-input on label tap */
 }
 .mh-track {
   position: relative;

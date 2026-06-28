@@ -138,6 +138,7 @@ export class ControlPanel {
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.checked = checked;
+    input.tabIndex = -1;
     input.addEventListener('change', () => on(input.checked));
     const track = document.createElement('span');
     track.className = 'mh-track';
@@ -156,6 +157,7 @@ export class ControlPanel {
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.checked = checked;
+    input.tabIndex = -1;
     input.addEventListener('change', () => on(input.checked));
     const track = document.createElement('span');
     track.className = 'mh-track';
@@ -386,6 +388,7 @@ export class ControlPanel {
     input.type = 'text';
     input.className = 'mh-input';
     input.placeholder = 'USGS event id or URL';
+    input.autocomplete = 'off';
     const go = document.createElement('button');
     go.type = 'button';
     go.className = 'mh-btn';
